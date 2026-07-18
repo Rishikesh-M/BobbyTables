@@ -187,6 +187,7 @@ Then open the following URL in your browser:
 ```
 http://localhost:8000/bobbytables.html
 ```
+or access via: https://bobby-tables.vercel.app/
 
 ---
 
