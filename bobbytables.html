@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQL Injection Exploitation Lab</title>
+<style>
+  :root{
+    --bg:#fbfbfd;
+    --bg-secondary:#f5f5f7;
+    --card:#ffffff;
+    --text:#1d1d1f;
+    --text-secondary:#6e6e73;
+    --border:#d2d2d7;
+    --blue:#0071e3;
+    --blue-hover:#0077ed;
+    --danger:#ff3b30;
+    --danger-bg:#fff2f1;
+    --success:#248a3d;
+    --success-bg:#eafaf0;
+    --code-bg:#1d1d1f;
+    --code-text:#f5f5f7;
+    --amber:#b26b00;
+    --amber-bg:#fff8ec;
+    --radius:18px;
+    --radius-sm:12px;
+    --shadow:0 4px 24px rgba(0,0,0,0.06);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+  }
+  .mono{
+    font-family:"SF Mono","SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  a{color:var(--blue);text-decoration:none;}
+
+  /* Nav */
+  nav{
+    position:sticky;top:0;z-index:50;
+    backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);
+    background:rgba(251,251,253,0.8);
+    border-bottom:1px solid rgba(0,0,0,0.06);
+  }
+  .nav-inner{
+    max-width:980px;margin:0 auto;padding:14px 22px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;letter-spacing:-0.01em;}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 4px var(--danger-bg);}
+  .nav-links{display:flex;gap:26px;font-size:13px;color:var(--text-secondary);}
+  .nav-links a:hover{color:var(--text);}
+  .badge-inline{
+    font-size:11px;font-weight:600;padding:3px 9px;border-radius:100px;
+    background:var(--amber-bg);color:var(--amber);letter-spacing:0.02em;
+  }
+
+  /* Hero */
+  header.hero{
+    max-width:980px;margin:0 auto;padding:88px 22px 56px;
+    text-align:center;
+  }
+  header.hero .eyebrow{
+    font-size:13px;font-weight:600;color:var(--danger);
+    text-transform:uppercase;letter-spacing:0.08em;margin-bottom:14px;
+  }
+  header.hero h1{
+    font-size:52px;font-weight:700;letter-spacing:-0.02em;margin:0 0 18px;
+    line-height:1.07;
+  }
+  header.hero h1 span{color:var(--blue);}
+  header.hero p{
+    font-size:20px;color:var(--text-secondary);max-width:640px;margin:0 auto 34px;
+    font-weight:400;
+  }
+  .hero-actions{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:12px 22px;border-radius:100px;font-size:15px;font-weight:500;
+    border:1px solid transparent;cursor:pointer;transition:all .15s ease;
+  }
+  .btn-primary{background:var(--blue);color:#fff;}
+  .btn-primary:hover{background:var(--blue-hover);}
+  .btn-ghost{background:var(--bg-secondary);color:var(--text);border-color:var(--border);}
+  .btn-ghost:hover{background:#ebebee;}
+
+  /* Mode switch */
+  .mode-bar{
+    max-width:980px;margin:0 auto 46px;padding:0 22px;
+    display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;
+  }
+  .switch{
+    display:flex;background:var(--bg-secondary);border:1px solid var(--border);
+    border-radius:100px;padding:4px;position:relative;
+  }
+  .switch button{
+    border:none;background:transparent;padding:10px 22px;border-radius:100px;
+    font-size:14px;font-weight:600;cursor:pointer;color:var(--text-secondary);
+    position:relative;z-index:2;transition:color .2s ease;
+  }
+  .switch button.active.vuln{color:#fff;}
+  .switch button.active.secure{color:#fff;}
+  .switch .thumb{
+    position:absolute;top:4px;bottom:4px;left:4px;
+    width:calc(50% - 4px);border-radius:100px;
+    background:var(--danger);
+    transition:transform .25s cubic-bezier(.4,0,.2,1), background .25s ease;
+    z-index:1;
+  }
+  .switch .thumb.secure{transform:translateX(100%);background:var(--success);}
+
+  .mode-note{
+    font-size:13px;color:var(--text-secondary);text-align:center;max-width:520px;
+  }
+
+  main{max-width:980px;margin:0 auto;padding:0 22px 100px;}
+
+  .section-title{
+    font-size:28px;font-weight:700;letter-spacing:-0.015em;margin:64px 0 8px;
+  }
+  .section-sub{color:var(--text-secondary);font-size:15px;margin-bottom:28px;max-width:640px;}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+  @media (max-width:760px){.grid{grid-template-columns:1fr;}}
+
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    padding:26px;box-shadow:var(--shadow);
+  }
+  .card h3{margin:0 0 4px;font-size:17px;font-weight:600;}
+  .card .card-desc{color:var(--text-secondary);font-size:13.5px;margin-bottom:18px;}
+
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.03em;}
+  input[type=text],input[type=password]{
+    width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--border);
+    font-size:14.5px;margin-bottom:16px;background:var(--bg-secondary);color:var(--text);
+    font-family:inherit;transition:border-color .15s ease, background .15s ease;
+  }
+  input[type=text]:focus,input[type=password]:focus{
+    outline:none;border-color:var(--blue);background:#fff;
+  }
+  .field-row{display:flex;gap:12px;}
+  .field-row > div{flex:1;}
+
+  .run-btn{
+    width:100%;padding:12px;border-radius:10px;border:none;
+    background:var(--text);color:#fff;font-size:14.5px;font-weight:600;
+    cursor:pointer;transition:opacity .15s ease;
+  }
+  .run-btn:hover{opacity:0.85;}
+
+  .hint-row{
+    display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;
+  }
+  .payload-chip{
+    font-size:11.5px;padding:5px 10px;border-radius:8px;background:var(--bg-secondary);
+    color:var(--text-secondary);cursor:pointer;border:1px solid var(--border);
+    font-family:"SF Mono",Menlo,monospace;transition:all .12s ease;
+  }
+  .payload-chip:hover{background:#ebebee;color:var(--text);}
+  .payload-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px;}
+
+  /* Query inspector */
+  .inspector{
+    margin-top:18px;background:var(--code-bg);border-radius:var(--radius-sm);
+    padding:16px 18px;position:relative;overflow:hidden;
+  }
+  .inspector .label{
+    font-size:10.5px;text-transform:uppercase;letter-spacing:0.08em;color:#8e8e93;
+    margin-bottom:8px;font-weight:600;
+  }
+  .inspector pre{
+    margin:0;color:var(--code-text);font-size:13px;white-space:pre-wrap;word-break:break-word;
+    font-family:"SF Mono",Menlo,Consolas,monospace;line-height:1.6;
+  }
+  .inj{color:#ff6961;background:rgba(255,105,97,0.15);border-radius:4px;padding:1px 2px;
+       animation:pulse 1.4s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{background:rgba(255,105,97,0.15);}50%{background:rgba(255,105,97,0.32);}}
+  .safe-param{color:#63e6be;background:rgba(99,230,190,0.12);border-radius:4px;padding:1px 2px;}
+
+  .result-panel{margin-top:16px;}
+  .result-box{
+    border-radius:var(--radius-sm);padding:16px 18px;font-size:14px;
+  }
+  .result-danger{background:var(--danger-bg);border:1px solid #ffd4d1;}
+  .result-success{background:var(--success-bg);border:1px solid #bdeecb;}
+  .result-neutral{background:var(--bg-secondary);border:1px solid var(--border);}
+  .result-title{font-weight:700;font-size:14px;margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+  .result-body{color:var(--text-secondary);font-size:13.5px;}
+
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px;}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);}
+  th{color:var(--text-secondary);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:0.03em;}
+  td.mono-cell{font-family:"SF Mono",Menlo,monospace;font-size:12.5px;}
+
+  /* Fix panel */
+  .tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;}
+  .tab{
+    padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;
+    background:var(--bg-secondary);color:var(--text-secondary);border:1px solid var(--border);
+  }
+  .tab.active{background:var(--text);color:#fff;border-color:var(--text);}
+  .code-block{
+    background:var(--code-bg);color:var(--code-text);border-radius:var(--radius-sm);
+    padding:18px;font-size:13px;overflow-x:auto;font-family:"SF Mono",Menlo,monospace;line-height:1.65;
+  }
+  .code-block .k{color:#ff7b72;}
+  .code-block .s{color:#a5d6ff;}
+  .code-block .c{color:#8b949e;}
+  .code-block .f{color:#d2a8ff;}
+
+  footer{
+    max-width:980px;margin:0 auto;padding:40px 22px 60px;border-top:1px solid var(--border);
+    color:var(--text-secondary);font-size:12.5px;text-align:center;
+  }
+
+  .toggle-inline{
+    display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary);cursor:pointer;
+    user-select:none;
+  }
+  .toggle-inline input{margin:0;}
+
+  .cheat-toggle{
+    display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;
+    color:var(--blue);cursor:pointer;margin:8px 0 0;
+  }
+  .cheat-body{display:none;margin-top:14px;}
+  .cheat-body.open{display:block;}
+  .cheat-body ul{margin:0;padding-left:18px;font-size:13.5px;color:var(--text-secondary);}
+  .cheat-body li{margin-bottom:6px;}
+  .cheat-body code{background:var(--bg-secondary);padding:2px 6px;border-radius:5px;font-size:12.5px;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <div class="brand"><span class="dot"></span> SQLi Exploitation Lab <span class="badge-inline">Intermediate</span></div>
+    <div class="nav-links">
+      <a href="#login-lab">Login Bypass</a>
+      <a href="#search-lab">Data Extraction</a>
+      <a href="#fixes">The Fix</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="eyebrow">Sandboxed &middot; No real database, no network calls</div>
+  <h1>Break it. <span>Then fix it.</span></h1>
+  <p>An in-browser database and query engine you can safely attack. Watch the raw SQL assemble character-by-character as you type, exploit two classic injection points, then flip the switch to see why parameterized queries close the door.</p>
+  <div class="hero-actions">
+    <a href="#login-lab" class="btn btn-primary">Start with login bypass →</a>
+    <a href="#fixes" class="btn btn-ghost">Jump to the fix</a>
+  </div>
+</header>
+
+<div class="mode-bar">
+  <div class="switch" id="modeSwitch">
+    <div class="thumb" id="thumb"></div>
+    <button class="vuln active" id="btnVuln" onclick="setMode('vuln')">Vulnerable</button>
+    <button class="secure" id="btnSecure" onclick="setMode('secure')">Secure (Fixed)</button>
+  </div>
+</div>
+<div class="mode-note" id="modeNote" style="margin: -30px auto 40px;text-align:center;display:block;">Queries are built with raw string concatenation — exactly how this bug ships in the real world.</div>
+
+<main>
+
+  <!-- LOGIN LAB -->
+  <section id="login-lab">
+    <div class="section-title">01 &nbsp;Authentication bypass</div>
+    <div class="section-sub">This mimics a login form backed by a <code class="mono">users</code> table. In vulnerable mode, your input is dropped directly into the WHERE clause. Try logging in as <strong>admin</strong> without knowing the password.</div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Sign in</h3>
+        <div class="card-desc">Target table: <span class="mono">users(username, password, role)</span></div>
+
+        <label>Username</label>
+        <input type="text" id="loginUser" placeholder="admin" value="admin">
+        <label>Password</label>
+        <input type="text" id="loginPass" placeholder="try something weird…" value="wrongpassword">
+
+        <div class="payload-list">
+          <div class="payload-chip" onclick="fillPayload('loginPass', &quot;' OR '1'='1&quot;)">' OR '1'='1</div>
+          <div class="payload-chip" onclick="fillPayload('loginPass', &quot;' OR '1'='1' -- &quot;)">' OR '1'='1' --</div>
+          <div class="payload-chip" onclick="fillPayload('loginUser', &quot;admin'--&quot;)">admin'--</div>
+        </div>
+
+        <button class="run-btn" onclick="runLogin()">Attempt sign in</button>
+
+        <div class="inspector">
+          <div class="label">Query executed on the server</div>
+          <pre id="loginQuery" class="mono"></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Result</h3>
+        <div class="card-desc">What the application does with the query result.</div>
+        <div id="loginResult" class="result-panel">
+          <div class="result-box result-neutral">
+            <div class="result-title">Waiting</div>
+            <div class="result-body">Submit the form to see what the backend returns.</div>
+          </div>
+        </div>
+
+        <div class="cheat-toggle" onclick="toggleCheat('loginCheat')">▾ How this payload works</div>
+        <div class="cheat-body" id="loginCheat">
+          <ul>
+            <li><code>' OR '1'='1</code> closes the string literal early, then adds a condition that's always true — the WHERE clause matches every row, so the query returns the first user regardless of password.</li>
+            <li><code>admin'--</code> closes the username string right after <code>admin</code>, then <code>--</code> comments out the rest of the query, including the password check entirely.</li>
+            <li>In secure mode the whole input is bound as one literal value, so the quote character has no special meaning — it's just a character in a password that doesn't match.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SEARCH LAB -->
+  <section id="search-lab">
+    <div class="section-title">02 &nbsp;UNION-based data extraction</div>
+    <div class="section-sub">A product search box that queries <span class="mono">products(name, price)</span>. There's a second, unlinked table <span class="mono">admin_credentials(username, password_hash)</span> the UI never exposes — but a UNION SELECT with matching columns can pull it into the results.</div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Search products</h3>
+        <div class="card-desc">Two columns are returned: <span class="mono">name, price</span></div>
+        <label>Search term</label>
+        <input type="text" id="searchTerm" placeholder="laptop" value="laptop">
+
+        <div class="payload-list">
+          <div class="payload-chip" onclick="fillPayload('searchTerm', &quot;nomatch' UNION SELECT username, password_hash FROM admin_credentials -- &quot;)">UNION SELECT credentials</div>
+          <div class="payload-chip" onclick="fillPayload('searchTerm', &quot;laptop&quot;)">laptop</div>
+        </div>
+
+        <button class="run-btn" onclick="runSearch()">Search</button>
+
+        <div class="inspector">
+          <div class="label">Query executed on the server</div>
+          <pre id="searchQuery" class="mono"></pre>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Results</h3>
+        <div class="card-desc">Rendered exactly as the storefront would render them.</div>
+        <div id="searchResult" class="result-panel">
+          <div class="result-box result-neutral">
+            <div class="result-title">Waiting</div>
+            <div class="result-body">Run a search to see results.</div>
+          </div>
+        </div>
+
+        <div class="cheat-toggle" onclick="toggleCheat('searchCheat')">▾ How this payload works</div>
+        <div class="cheat-body" id="searchCheat">
+          <ul>
+            <li>The payload starts with a term that matches nothing, closes the string, then appends a second <code>SELECT</code> joined with <code>UNION</code>.</li>
+            <li>For a UNION to work in real SQL, the second query needs the same number of columns as the first — here that's exactly <code>username, password_hash</code> lined up against <code>name, price</code>.</li>
+            <li>The app blindly renders both result sets in the same table, so credentials from an unrelated, unlinked table end up on the storefront page.</li>
+            <li>In secure mode, the whole input is one bound parameter — there's no way to inject a second statement, because it was never treated as SQL syntax to begin with.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FIX -->
+  <section id="fixes">
+    <div class="section-title">03 &nbsp;The fix: parameterized queries</div>
+    <div class="section-sub">The vulnerability isn't "user input" — it's building SQL by string concatenation. Parameterized queries (a.k.a. prepared statements) send the query structure and the data separately, so the database never interprets input as code.</div>
+
+    <div class="tabs" id="codeTabs">
+      <div class="tab active" onclick="setLang('node', this)">Node.js</div>
+      <div class="tab" onclick="setLang('python', this)">Python</div>
+      <div class="tab" onclick="setLang('php', this)">PHP</div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="code-block" id="codeBlock"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Every query in this lab runs against an in-memory dataset inside your browser — there is no real database, server, or network request involved. Built for learning how injection and parameterization actually work under the hood.
+</footer>
+
+<script>
+/* ---------- Fake "database" ---------- */
+const USERS = [
+  { username: 'admin', password: 'S3cur3Pass!', role: 'administrator' },
+  { username: 'alice', password: 'hunter2', role: 'user' },
+  { username: 'bob', password: 'letmein', role: 'user' },
+];
+
+const PRODUCTS = [
+  { name: 'Laptop Pro 14"', price: '$1,999' },
+  { name: 'Laptop Air 13"', price: '$1,199' },
+  { name: 'Wireless Mouse', price: '$49' },
+  { name: 'USB-C Hub', price: '$79' },
+];
+
+const ADMIN_CREDENTIALS = [
+  { username: 'root_admin', password_hash: '5f4dcc3b5aa765d61d8327deb882cf99' },
+  { username: 'sys_svc', password_hash: 'e99a18c428cb38d5f260853678922e03' },
+];
+
+let mode = 'vuln';
+
+function setMode(m){
+  mode = m;
+  document.getElementById('thumb').className = 'thumb' + (m === 'secure' ? ' secure' : '');
+  document.getElementById('btnVuln').classList.toggle('active', m === 'vuln');
+  document.getElementById('btnSecure').classList.toggle('active', m === 'secure');
+  document.getElementById('modeNote').textContent = m === 'vuln'
+    ? 'Queries are built with raw string concatenation — exactly how this bug ships in the real world.'
+    : 'Queries now bind input as parameters. The database treats it purely as data, never as SQL syntax.';
+  // refresh previews
+  renderLoginQuery();
+  renderSearchQuery();
+}
+
+function fillPayload(fieldId, value){
+  document.getElementById(fieldId).value = value;
+  if(fieldId.startsWith('login')) renderLoginQuery();
+  else renderSearchQuery();
+}
+
+function toggleCheat(id){
+  document.getElementById(id).classList.toggle('open');
+}
+
+function escapeHtml(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ---------- Tiny WHERE-clause evaluator for the simulation ---------- */
+function stripComment(sql){
+  const idx1 = sql.indexOf('--');
+  const idx2 = sql.indexOf('#');
+  let idx = -1;
+  if(idx1 !== -1) idx = idx1;
+  if(idx2 !== -1 && (idx === -1 || idx2 < idx)) idx = idx2;
+  return idx === -1 ? sql : sql.slice(0, idx);
+}
+
+// Evaluate a simple WHERE clause of the form:
+// username = 'X' AND password = 'Y'  (with possible injected OR/tautologies)
+function evalWhere(whereClause, row){
+  const clause = stripComment(whereClause).trim();
+  if(clause.length === 0) return true; // everything commented out -> no filter -> matches
+  // split on OR (lowest precedence), each side split on AND
+  const orParts = clause.split(/\s+OR\s+/i);
+  return orParts.some(orPart => {
+    const andParts = orPart.split(/\s+AND\s+/i);
+    return andParts.every(cond => evalCondition(cond.trim(), row));
+  });
+}
+
+function evalCondition(cond, row){
+  // matches: field = 'value'  OR  'lit' = 'lit'  OR 1=1 style
+  const m = cond.match(/^'?([\w]+)?'?\s*=\s*'?([^']*)'?$/);
+  if(!m) return false;
+  let left = cond.split('=')[0].trim();
+  let right = cond.split('=').slice(1).join('=').trim();
+  left = left.replace(/^'(.*)'$/, '$1');
+  right = right.replace(/^'(.*)'$/, '$1');
+
+  const isField = /^[a-zA-Z_]+$/.test(left) && row.hasOwnProperty(left);
+  const leftVal = isField ? String(row[left]) : left;
+  return leftVal === right;
+}
+
+/* ---------- Login lab ---------- */
+function buildLoginQuery(user, pass){
+  if(mode === 'vuln'){
+    return `SELECT * FROM users WHERE username = '${user}' AND password = '${pass}'`;
+  } else {
+    return `SELECT * FROM users WHERE username = ? AND password = ?\n-- bound params: [${JSON.stringify(user)}, ${JSON.stringify(pass)}]`;
+  }
+}
+
+function renderLoginQuery(){
+  const user = document.getElementById('loginUser').value;
+  const pass = document.getElementById('loginPass').value;
+  const el = document.getElementById('loginQuery');
+
+  if(mode === 'vuln'){
+    const raw = buildLoginQuery(user, pass);
+    el.innerHTML = highlightInjection(raw, user, pass);
+  } else {
+    const raw = buildLoginQuery(user, pass);
+    const lines = raw.split('\n');
+    el.innerHTML = escapeHtml(lines[0]) + '\n<span class="safe-param">' + escapeHtml(lines[1]) + '</span>';
+  }
+}
+
+function highlightInjection(raw, ...userInputs){
+  let html = escapeHtml(raw);
+  userInputs.forEach(input => {
+    if(!input) return;
+    const escaped = escapeHtml(input);
+    if(/('|--|#|;|\bOR\b|\bUNION\b)/i.test(input)){
+      html = html.split(escaped).join(`<span class="inj">${escaped}</span>`);
+    }
+  });
+  return html;
+}
+
+function runLogin(){
+  const user = document.getElementById('loginUser').value;
+  const pass = document.getElementById('loginPass').value;
+  renderLoginQuery();
+
+  let matched;
+  if(mode === 'vuln'){
+    const where = `username = '${user}' AND password = '${pass}'`;
+    matched = USERS.find(row => evalWhere(where, row));
+  } else {
+    matched = USERS.find(row => row.username === user && row.password === pass);
+  }
+
+  const resultEl = document.getElementById('loginResult');
+  if(matched){
+    const bypassed = mode === 'vuln' && matched.password !== pass;
+    resultEl.innerHTML = `
+      <div class="result-box ${bypassed ? 'result-danger' : 'result-success'}">
+        <div class="result-title">${bypassed ? '⚠️ Authentication bypassed' : '✅ Signed in'}</div>
+        <div class="result-body">
+          ${bypassed
+            ? `Logged in as <strong>${matched.username}</strong> (role: ${matched.role}) — without ever supplying the correct password. The tautology in your input made the WHERE clause match unconditionally.`
+            : `Logged in as <strong>${matched.username}</strong> (role: ${matched.role}).`}
+        </div>
+        <table>
+          <tr><th>username</th><th>role</th><th>password (for reference only)</th></tr>
+          <tr><td class="mono-cell">${matched.username}</td><td class="mono-cell">${matched.role}</td><td class="mono-cell">${matched.password}</td></tr>
+        </table>
+      </div>`;
+  } else {
+    resultEl.innerHTML = `
+      <div class="result-box result-neutral">
+        <div class="result-title">🔒 Access denied</div>
+        <div class="result-body">No row matched the WHERE clause. ${mode === 'secure' ? 'Your input was bound as literal data — special characters have no SQL meaning here.' : 'Try one of the payload chips above.'}</div>
+      </div>`;
+  }
+}
+
+/* ---------- Search lab ---------- */
+function buildSearchQuery(term){
+  if(mode === 'vuln'){
+    return `SELECT name, price FROM products WHERE name LIKE '%${term}%'`;
+  } else {
+    return `SELECT name, price FROM products WHERE name LIKE ?\n-- bound param: ["%" + ${JSON.stringify(term)} + "%"]`;
+  }
+}
+
+function renderSearchQuery(){
+  const term = document.getElementById('searchTerm').value;
+  const el = document.getElementById('searchQuery');
+  if(mode === 'vuln'){
+    el.innerHTML = highlightInjection(buildSearchQuery(term), term);
+  } else {
+    const raw = buildSearchQuery(term);
+    const lines = raw.split('\n');
+    el.innerHTML = escapeHtml(lines[0]) + '\n<span class="safe-param">' + escapeHtml(lines[1]) + '</span>';
+  }
+}
+
+function runSearch(){
+  const term = document.getElementById('searchTerm').value;
+  renderSearchQuery();
+  const resultEl = document.getElementById('searchResult');
+
+  if(mode === 'vuln'){
+    const unionMatch = term.match(/UNION\s+SELECT\s+([\w]+)\s*,\s*([\w]+)\s+FROM\s+([\w]+)/i);
+    let rows = [];
+    const beforeUnion = stripComment(term.split(/UNION\s+SELECT/i)[0]).trim().replace(/'$/, '');
+    rows = PRODUCTS.filter(p => beforeUnion.trim().length ? p.name.toLowerCase().includes(beforeUnion.trim().toLowerCase()) : true);
+
+    let leaked = false;
+    if(unionMatch){
+      const table = unionMatch[3].toLowerCase();
+      if(table === 'admin_credentials'){
+        leaked = true;
+        rows = rows.concat(ADMIN_CREDENTIALS.map(r => ({ name: r.username, price: r.password_hash })));
+      }
+    }
+
+    if(leaked){
+      resultEl.innerHTML = `
+        <div class="result-box result-danger">
+          <div class="result-title">⚠️ Data leaked from another table</div>
+          <div class="result-body">The UNION SELECT lined up column-for-column with the product query, so rows from <span class="mono">admin_credentials</span> got merged straight into the storefront results.</div>
+          <table>
+            <tr><th>name column</th><th>price column</th></tr>
+            ${rows.map(r => `<tr><td class="mono-cell">${escapeHtml(String(r.name))}</td><td class="mono-cell">${escapeHtml(String(r.price))}</td></tr>`).join('')}
+          </table>
+        </div>`;
+    } else {
+      resultEl.innerHTML = `
+        <div class="result-box result-neutral">
+          <div class="result-title">Results</div>
+          <table>
+            <tr><th>name</th><th>price</th></tr>
+            ${rows.length ? rows.map(r => `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.price)}</td></tr>`).join('') : '<tr><td colspan="2">No matches</td></tr>'}
+          </table>
+        </div>`;
+    }
+  } else {
+    const rows = PRODUCTS.filter(p => p.name.toLowerCase().includes(term.toLowerCase()));
+    resultEl.innerHTML = `
+      <div class="result-box result-success">
+        <div class="result-title">✅ Query bound safely</div>
+        <div class="result-body">Your entire input was treated as one literal search string — no UNION, no second statement, nothing extra is possible.</div>
+        <table>
+          <tr><th>name</th><th>price</th></tr>
+          ${rows.length ? rows.map(r => `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.price)}</td></tr>`).join('') : '<tr><td colspan="2">No matches</td></tr>'}
+        </table>
+      </div>`;
+  }
+}
+
+/* ---------- Fix code samples ---------- */
+const CODE = {
+  node: `<span class="c">// Node.js — using a parameterized query (node-postgres)</span>
+<span class="k">const</span> result = <span class="k">await</span> pool.<span class="f">query</span>(
+  <span class="s">'SELECT * FROM users WHERE username = $1 AND password = $2'</span>,
+  [username, password]
+);
+<span class="c">// The driver sends the query text and values separately —</span>
+<span class="c">// the database never parses "values" as SQL syntax.</span>`,
+
+  python: `<span class="c"># Python — using a parameterized query (psycopg2)</span>
+cursor.<span class="f">execute</span>(
+    <span class="s">"SELECT * FROM users WHERE username = %s AND password = %s"</span>,
+    (username, password)
+)
+<span class="c"># Never use f-strings or % formatting to build the query itself:</span>
+<span class="c"># f"...WHERE username = '{username}'" re-introduces the bug.</span>`,
+
+  php: `<span class="c">// PHP — using a prepared statement (PDO)</span>
+<span class="f">$stmt</span> = <span class="f">$pdo</span>-><span class="f">prepare</span>(
+    <span class="s">'SELECT * FROM users WHERE username = :username AND password = :password'</span>
+);
+<span class="f">$stmt</span>-><span class="f">execute</span>([
+    <span class="s">'username'</span> => <span class="f">$username</span>,
+    <span class="s">'password'</span> => <span class="f">$password</span>,
+]);`,
+};
+
+function setLang(lang, el){
+  document.querySelectorAll('#codeTabs .tab').forEach(t => t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  else document.querySelector('#codeTabs .tab').classList.add('active');
+  document.getElementById('codeBlock').innerHTML = CODE[lang];
+}
+
+/* ---------- init ---------- */
+document.getElementById('loginUser').addEventListener('input', renderLoginQuery);
+document.getElementById('loginPass').addEventListener('input', renderLoginQuery);
+document.getElementById('searchTerm').addEventListener('input', renderSearchQuery);
+
+renderLoginQuery();
+renderSearchQuery();
+setLang('node');
+</script>
+
+</body>
+</html>
